@@ -51,7 +51,7 @@ public static class Phase1SceneBuilder
         var buoyancy = boat.AddComponent<Buoyancy>();
         buoyancy.floatProbes = probes.ToArray();
         var bc = boat.AddComponent<BoatController>();
-        bc.thrust = 600f;        // faster for map travel
+        bc.windForce = 700f;     // tailwind push when the sail is up
         bc.steerTorque = 220f;
 
         // --- Sea (follows the boat) ---
@@ -68,6 +68,9 @@ public static class Phase1SceneBuilder
         var map = world.AddComponent<WorldMap>();
         map.boat = boat.transform;
         map.markerMaterial = cityMat;
+
+        var compass = world.AddComponent<Compass>();
+        compass.boat = boat.transform;
 
         // --- Camera ---
         var cam = Object.FindFirstObjectByType<Camera>();

@@ -1,17 +1,22 @@
 using UnityEngine;
 
-// WASD / arrow-key sailing. W-S drive thrust along the hull's forward axis,
-// A-D steer (yaw torque). Force is only applied while the hull sits near the
-// water so you can't fly the boat through the air.
+// Sail-based sailing (sc1 spec):
+//   Space  = raise / furl the sail
+//   sail up   -> a tailwind pushes the boat forward automatically
+//   sail down -> no push; the boat coasts to a stop (water drag)
+//   A / D  = steer (turn) at any time
 [RequireComponent(typeof(Rigidbody))]
 public class BoatController : MonoBehaviour
 {
-    [Tooltip("Forward/back thrust force.")]
-    public float thrust = 250f;
-    [Tooltip("Steering torque around the vertical axis.")]
-    public float steerTorque = 120f;
-    [Tooltip("Only drive when the hull centre is within this height of the water.")]
+    [Tooltip("Forward push from the tailwind while the sail is up.")]
+    public float windForce = 700f;
+    [Tooltip("Steering torque around the vertical axis (A/D).")]
+    public float steerTorque = 220f;
+    [Tooltip("Only sail while the hull centre is within this height of the water.")]
     public float driveDepth = 2f;
+    public KeyCode sailKey = KeyCode.Space;
+
+    public bool SailUp { get; private set; }
 
     Rigidbody rb;
 
@@ -20,18 +25,21 @@ public class BoatController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
 
+    void Update()
+    {
+        if (Input.GetKeyDown(sailKey)) SailUp = !SailUp;
+    }
+
     void FixedUpdate()
     {
-        float forward = Input.GetAxis("Vertical");    // W / S
-        float steer = Input.GetAxis("Horizontal");    // A / D
-
         var field = WaveField.Instance;
-        bool inWater = true;
-        if (field != null)
-            inWater = transform.position.y <= field.GetHeight(transform.position) + driveDepth;
+        bool inWater = field == null || transform.position.y <= field.GetHeight(transform.position) + driveDepth;
         if (!inWater) return;
 
-        rb.AddForce(transform.forward * forward * thrust, ForceMode.Force);
+        float steer = Input.GetAxis("Horizontal"); // A / D
         rb.AddTorque(Vector3.up * steer * steerTorque, ForceMode.Force);
+
+        if (SailUp)
+            rb.AddForce(transform.forward * windForce, ForceMode.Force);
     }
 }
