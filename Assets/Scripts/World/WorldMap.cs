@@ -10,8 +10,8 @@ public class WorldMap : MonoBehaviour
     public Material markerMaterial;
 
     [Header("Markers")]
-    public float markerHeight = 16f;
-    public float markerRadius = 3f;
+    public float markerHeight = 7f;
+    public float markerRadius = 2.5f;
 
     [Header("Docking")]
     public float arrivalRadius = 18f;

@@ -29,6 +29,8 @@ public static class Phase1SceneBuilder
         rb.useGravity = false;
         rb.linearDamping = 0.2f;
         rb.angularDamping = 1.5f;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; // don't tunnel through coasts
+        rb.centerOfMass = new Vector3(0f, -0.6f, 0f);                          // keel: resists flipping
         boat.AddComponent<BoxCollider>().size = new Vector3(2f, 0.8f, 5f);
 
         AddShipVisual(boat.transform, hullMat);
@@ -88,8 +90,8 @@ public static class Phase1SceneBuilder
             var follow = cam.gameObject.GetComponent<CameraFollow>();
             if (follow == null) follow = cam.gameObject.AddComponent<CameraFollow>();
             follow.target = boat.transform;
-            follow.offset = new Vector3(0f, 9f, -18f);
-            cam.transform.position = new Vector3(0f, 15f, -18f);
+            follow.distance = 24f;
+            follow.pitch = 24f;
         }
 
         var light = Object.FindFirstObjectByType<Light>();

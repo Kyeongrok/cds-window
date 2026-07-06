@@ -15,7 +15,7 @@ public static class LandBuilder
     // Covered region (degrees) and grid resolution.
     const float LonMin = -110f, LonMax = 140f, LatMin = -40f, LatMax = 65f;
     const float Step = 0.5f;
-    const float LandHeight = 6f, SeaDepth = 2f;
+    const float LandHeight = 3f, SeaDepth = 2f; // land pokes ~half out of the water
 
     // Straits forced to sea: {lonMin, lonMax, latMin, latMax}
     static readonly float[][] Straits =
@@ -82,6 +82,10 @@ public static class LandBuilder
         var go = new GameObject("Land", typeof(MeshFilter), typeof(MeshRenderer));
         go.GetComponent<MeshFilter>().sharedMesh = mesh;
         go.GetComponent<MeshRenderer>().sharedMaterial = MakeLandMaterial();
+
+        // Static collision so the boat can't sail across land.
+        var mc = go.AddComponent<MeshCollider>();
+        mc.sharedMesh = mesh;
         return go;
     }
 

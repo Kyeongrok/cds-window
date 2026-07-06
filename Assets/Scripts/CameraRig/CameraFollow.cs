@@ -1,21 +1,37 @@
 using UnityEngine;
 
-// Simple chase camera. Follows the target using yaw only, so the view doesn't
-// seasick-roll with the boat's pitch and roll. (Swap for Cinemachine later.)
+// Orbit chase camera (조작-해상 ct1-1): the camera follows the boat's position,
+// and holding the RIGHT mouse button + dragging orbits the view (yaw/pitch).
+// It does not auto-swing behind the boat, so the player controls the framing.
 public class CameraFollow : MonoBehaviour
 {
     public Transform target;
-    public Vector3 offset = new Vector3(0f, 7f, -14f);
-    public float positionSmooth = 3f;
+    public float distance = 22f;
+    public float yaw = 0f;
+    public float pitch = 22f;
+    public float sensitivity = 4f;
+    public float minPitch = 6f;
+    public float maxPitch = 80f;
     public float lookHeight = 2f;
+
+    void Start()
+    {
+        if (target != null) yaw = target.eulerAngles.y;
+    }
 
     void LateUpdate()
     {
         if (target == null) return;
 
-        Quaternion yaw = Quaternion.Euler(0f, target.eulerAngles.y, 0f);
-        Vector3 desired = target.position + yaw * offset;
-        transform.position = Vector3.Lerp(transform.position, desired, positionSmooth * Time.deltaTime);
+        if (Input.GetMouseButton(1)) // right button held -> orbit
+        {
+            yaw += Input.GetAxis("Mouse X") * sensitivity;
+            pitch -= Input.GetAxis("Mouse Y") * sensitivity;
+            pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+        }
+
+        Vector3 offset = Quaternion.Euler(pitch, yaw, 0f) * (Vector3.back * distance);
+        transform.position = target.position + offset;
         transform.LookAt(target.position + Vector3.up * lookHeight);
     }
 }
