@@ -23,7 +23,7 @@ public static class Phase1SceneBuilder
 
         // --- Boat (start at map origin = Lisbon) ---
         var boat = new GameObject("Boat");
-        boat.transform.position = new Vector3(0f, 6f, 0f);
+        boat.transform.position = GeoProjection.LatLonToWorld(38f, -11f) + Vector3.up * 6f; // Atlantic, just west of Lisbon
         var rb = boat.AddComponent<Rigidbody>();
         rb.mass = 40f;
         rb.useGravity = false;
@@ -31,8 +31,7 @@ public static class Phase1SceneBuilder
         rb.angularDamping = 1.5f;
         boat.AddComponent<BoxCollider>().size = new Vector3(2f, 0.8f, 5f);
 
-        var hull = MakeChildCube(boat.transform, "Hull", Vector3.zero, new Vector3(2f, 0.8f, 5f), hullMat);
-        MakeChildCube(boat.transform, "Bow", new Vector3(0f, 0.5f, 2.4f), new Vector3(0.4f, 0.4f, 0.6f), hullMat);
+        AddShipVisual(boat.transform, hullMat);
 
         var probes = new List<Transform>();
         float px = 0.9f, pz = 2.2f, py = -0.4f;
@@ -72,6 +71,13 @@ public static class Phase1SceneBuilder
         var compass = world.AddComponent<Compass>();
         compass.boat = boat.transform;
 
+        var mapScreen = world.AddComponent<MapScreen>();
+        mapScreen.boat = boat.transform;
+        mapScreen.mapTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/worldmap.jpg");
+
+        // --- Land (real geography from the Blue Marble map) ---
+        LandBuilder.Build();
+
         // --- Camera ---
         var cam = Object.FindFirstObjectByType<Camera>();
         if (cam != null)
@@ -100,6 +106,14 @@ public static class Phase1SceneBuilder
         };
         AssetDatabase.SaveAssets();
         Debug.Log("Phase1SceneBuilder: built " + ScenePath);
+    }
+
+    // Simple cube boat visual. (A proper ship model is parked until the glTF
+    // importer is stable in this project.)
+    static void AddShipVisual(Transform boat, Material hullMat)
+    {
+        MakeChildCube(boat, "Hull", Vector3.zero, new Vector3(2f, 0.8f, 5f), hullMat);
+        MakeChildCube(boat, "Bow", new Vector3(0f, 0.5f, 2.4f), new Vector3(0.4f, 0.4f, 0.6f), hullMat);
     }
 
     static GameObject MakeChildCube(Transform parent, string name, Vector3 localPos, Vector3 scale, Material mat)

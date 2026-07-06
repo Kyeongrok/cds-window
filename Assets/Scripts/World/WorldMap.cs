@@ -9,12 +9,6 @@ public class WorldMap : MonoBehaviour
     public Transform boat;
     public Material markerMaterial;
 
-    [Header("Mapping")]
-    [Tooltip("World units per original map pixel.")]
-    public float scale = 0.5f;
-    [Tooltip("City name to place at world origin (0,0). Boat starts here.")]
-    public string originCityName = "리스본";
-
     [Header("Markers")]
     public float markerHeight = 16f;
     public float markerRadius = 3f;
@@ -26,7 +20,6 @@ public class WorldMap : MonoBehaviour
 
     struct Entry { public City city; public Vector3 pos; }
     readonly List<Entry> entries = new List<Entry>();
-    Vector2 origin;
 
     Entry? nearest;
     float nearestDist;
@@ -39,11 +32,6 @@ public class WorldMap : MonoBehaviour
     {
         var cities = CityLoader.LoadFromResources();
         if (cities.Length == 0) return;
-
-        // Center the map on the origin city (fallback: first city).
-        origin = new Vector2(cities[0].pixelX, cities[0].pixelY);
-        foreach (var c in cities)
-            if (c.name == originCityName) { origin = new Vector2(c.pixelX, c.pixelY); break; }
 
         var root = new GameObject("Cities").transform;
         root.SetParent(transform, false);
@@ -63,14 +51,11 @@ public class WorldMap : MonoBehaviour
             if (markerMaterial != null) m.GetComponent<MeshRenderer>().sharedMaterial = markerMaterial;
         }
 
-        Debug.Log("WorldMap: placed " + entries.Count + " cities. Origin=" + originCityName);
+        Debug.Log("WorldMap: placed " + entries.Count + " cities (lat/lon projection).");
     }
 
-    Vector3 MapToWorld(City c)
-    {
-        // pixelY grows downward on the source map, so invert it for world Z.
-        return new Vector3((c.pixelX - origin.x) * scale, 0f, (origin.y - c.pixelY) * scale);
-    }
+    // City position from real latitude/longitude (shared with the land mesh).
+    Vector3 MapToWorld(City c) => GeoProjection.LatLonToWorld(c.latitude, c.longitude);
 
     void Update()
     {
