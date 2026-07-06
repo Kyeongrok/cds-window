@@ -1,0 +1,144 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+// Loads the 226 cities, drops a marker for each at its mapped world position,
+// and reports which city the boat is currently near ("입항").
+public class WorldMap : MonoBehaviour
+{
+    [Header("Refs")]
+    public Transform boat;
+    public Material markerMaterial;
+
+    [Header("Mapping")]
+    [Tooltip("World units per original map pixel.")]
+    public float scale = 0.5f;
+    [Tooltip("City name to place at world origin (0,0). Boat starts here.")]
+    public string originCityName = "리스본";
+
+    [Header("Markers")]
+    public float markerHeight = 16f;
+    public float markerRadius = 3f;
+
+    [Header("Docking")]
+    public float arrivalRadius = 18f;
+    [Tooltip("Only draw name labels for cities within this range of the boat.")]
+    public float labelRange = 450f;
+
+    struct Entry { public City city; public Vector3 pos; }
+    readonly List<Entry> entries = new List<Entry>();
+    Vector2 origin;
+
+    Entry? nearest;
+    float nearestDist;
+    int dockedId = -1;
+
+    GUIStyle labelStyle, hudStyle;
+    Font krFont;
+
+    void Start()
+    {
+        var cities = CityLoader.LoadFromResources();
+        if (cities.Length == 0) return;
+
+        // Center the map on the origin city (fallback: first city).
+        origin = new Vector2(cities[0].pixelX, cities[0].pixelY);
+        foreach (var c in cities)
+            if (c.name == originCityName) { origin = new Vector2(c.pixelX, c.pixelY); break; }
+
+        var root = new GameObject("Cities").transform;
+        root.SetParent(transform, false);
+
+        foreach (var c in cities)
+        {
+            Vector3 pos = MapToWorld(c);
+            entries.Add(new Entry { city = c, pos = pos });
+
+            var m = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            m.name = c.name;
+            var col = m.GetComponent<Collider>();
+            if (col != null) Destroy(col); // waypoint marker, not an obstacle
+            m.transform.SetParent(root, false);
+            m.transform.position = pos + Vector3.up * (markerHeight * 0.5f);
+            m.transform.localScale = new Vector3(markerRadius, markerHeight * 0.5f, markerRadius);
+            if (markerMaterial != null) m.GetComponent<MeshRenderer>().sharedMaterial = markerMaterial;
+        }
+
+        Debug.Log("WorldMap: placed " + entries.Count + " cities. Origin=" + originCityName);
+    }
+
+    Vector3 MapToWorld(City c)
+    {
+        // pixelY grows downward on the source map, so invert it for world Z.
+        return new Vector3((c.pixelX - origin.x) * scale, 0f, (origin.y - c.pixelY) * scale);
+    }
+
+    void Update()
+    {
+        if (boat == null || entries.Count == 0) return;
+
+        nearest = null;
+        nearestDist = float.MaxValue;
+        Vector3 b = boat.position;
+        foreach (var e in entries)
+        {
+            float d = Vector2.Distance(new Vector2(b.x, b.z), new Vector2(e.pos.x, e.pos.z));
+            if (d < nearestDist) { nearestDist = d; nearest = e; }
+        }
+
+        if (nearest.HasValue && nearestDist <= arrivalRadius)
+        {
+            if (dockedId != nearest.Value.city.id)
+            {
+                dockedId = nearest.Value.city.id;
+                Debug.Log("입항: " + nearest.Value.city.name + " (" + nearest.Value.city.culturalSphere + ")");
+            }
+        }
+        else dockedId = -1;
+    }
+
+    void EnsureStyles()
+    {
+        if (krFont == null)
+            krFont = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "맑은 고딕", "Gulim", "Arial" }, 16);
+        if (labelStyle == null)
+        {
+            labelStyle = new GUIStyle { font = krFont, fontSize = 14, alignment = TextAnchor.MiddleCenter };
+            labelStyle.normal.textColor = Color.white;
+        }
+        if (hudStyle == null)
+        {
+            hudStyle = new GUIStyle { font = krFont, fontSize = 20 };
+            hudStyle.normal.textColor = Color.white;
+        }
+    }
+
+    void OnGUI()
+    {
+        if (entries.Count == 0) return;
+        EnsureStyles();
+
+        var cam = Camera.main;
+        if (cam != null)
+        {
+            Vector3 b = boat != null ? boat.position : Vector3.zero;
+            foreach (var e in entries)
+            {
+                if (Vector2.Distance(new Vector2(b.x, b.z), new Vector2(e.pos.x, e.pos.z)) > labelRange) continue;
+                Vector3 sp = cam.WorldToScreenPoint(e.pos + Vector3.up * (markerHeight + 3f));
+                if (sp.z <= 0f) continue;
+                GUI.Label(new Rect(sp.x - 60f, Screen.height - sp.y - 10f, 120f, 20f), e.city.name, labelStyle);
+            }
+        }
+
+        // HUD
+        GUI.Label(new Rect(16f, 12f, 600f, 30f),
+            nearest.HasValue ? string.Format("가까운 도시: {0}   거리 {1:0} m", nearest.Value.city.name, nearestDist)
+                             : "도시 없음", hudStyle);
+
+        if (nearest.HasValue && nearestDist <= arrivalRadius)
+        {
+            var box = new GUIStyle(hudStyle); box.normal.textColor = new Color(1f, 0.9f, 0.3f);
+            GUI.Label(new Rect(16f, 44f, 600f, 30f), "⚓ 입항: " + nearest.Value.city.name, box);
+        }
+    }
+}

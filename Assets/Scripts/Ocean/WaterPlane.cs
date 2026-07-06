@@ -10,6 +10,8 @@ public class WaterPlane : MonoBehaviour
     public float size = 320f;
     [Tooltip("Vertices per side. Higher = smoother waves but more CPU.")]
     public int resolution = 80;
+    [Tooltip("If set, the water patch recenters on this transform each frame (infinite-ocean illusion).")]
+    public Transform follow;
 
     Mesh mesh;
     Vector3[] baseVerts;
@@ -70,6 +72,15 @@ public class WaterPlane : MonoBehaviour
     void Update()
     {
         if (mesh == null || baseVerts == null) BuildMesh();
+
+        // Recenter under the followed target, snapped to the grid so waves don't crawl.
+        if (follow != null)
+        {
+            float step = size / (Mathf.Max(2, resolution) - 1);
+            Vector3 p = follow.position;
+            transform.position = new Vector3(Mathf.Round(p.x / step) * step, 0f, Mathf.Round(p.z / step) * step);
+        }
+
         var field = WaveField.Instance;
         if (field == null) return;
 

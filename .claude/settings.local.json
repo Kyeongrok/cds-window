@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($p = Get-Process | Where-Object { $_.ProcessName -eq \"Unity\" }; if\\($p\\){ \"Unity 에디터 실행 중 \\(Id $\\($p.Id -join ','\\)\\)\" } else { \"Unity 에디터 안 켜짐 → 배치모드 검증 가능\" }; \"--- lockfile ---\"; Test-Path \"C:\\\\Users\\\\ocean\\\\git\\\\cds-window\\\\Temp\\\\UnityLockfile\")"
+    ]
+  }
+}
