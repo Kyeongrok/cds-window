@@ -10,7 +10,7 @@ public class WorldMap : MonoBehaviour
     public Material markerMaterial;
 
     [Header("Markers")]
-    public float markerHeight = 7f;
+    public float markerHeight = 3.5f; // lowered by half (sail-fb: markers stuck up too high)
     public float markerRadius = 2.5f;
 
     [Header("Docking")]

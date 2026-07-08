@@ -77,7 +77,7 @@ public static class Phase1SceneBuilder
         mapScreen.boat = boat.transform;
         mapScreen.mapTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/worldmap.jpg");
 
-        world.AddComponent<GameClock>(); // 1480-01-01, 1 day per real minute
+        var clock = world.AddComponent<GameClock>(); // 1480-01-01, 1 day per real minute
 
         // --- Land (real geography from the Blue Marble map) ---
         LandBuilder.Build();
@@ -96,8 +96,27 @@ public static class Phase1SceneBuilder
             follow.pitch = 24f;
         }
 
-        var light = Object.FindFirstObjectByType<Light>();
-        if (light != null) light.transform.rotation = Quaternion.Euler(45f, 30f, 0f);
+        // --- Day/night cycle (sail4): sun/moon rise & set, sky shifts, moon phase ---
+        var sun = Object.FindFirstObjectByType<Light>();
+        if (sun != null)
+        {
+            sun.type = LightType.Directional;
+            sun.transform.rotation = Quaternion.Euler(45f, 30f, 0f);
+        }
+
+        var moonGO = new GameObject("Moon Light");
+        var moonLight = moonGO.AddComponent<Light>();
+        moonLight.type = LightType.Directional;
+        moonLight.intensity = 0.2f;
+        moonLight.color = new Color(0.6f, 0.7f, 1f);
+        moonLight.shadows = LightShadows.None;
+
+        var skyGO = new GameObject("DayNightCycle");
+        var dnc = skyGO.AddComponent<DayNightCycle>();
+        dnc.sun = sun;
+        dnc.moon = moonLight;
+        dnc.clock = clock;
+        dnc.cam = cam;
 
         Directory.CreateDirectory("Assets/Scenes");
         EditorSceneManager.MarkSceneDirty(scene);

@@ -13,6 +13,11 @@ public class GameClock : MonoBehaviour
 
     public DateTime Now => start.AddDays(Mathf.FloorToInt(elapsed / Mathf.Max(0.01f, secondsPerDay)));
 
+    // Continuous days since the start date (fractional) and the fraction through
+    // the current day (0 = midnight, 0.5 = noon). Used by the day/night cycle.
+    public double TotalDays => elapsed / Mathf.Max(0.01f, secondsPerDay);
+    public float DayFraction => Mathf.Repeat((float)TotalDays, 1f);
+
     DateTime start;
     float elapsed;
 

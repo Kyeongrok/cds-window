@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -15,7 +16,14 @@ public static class LandBuilder
     // Covered region (degrees) and grid resolution.
     const float LonMin = -110f, LonMax = 140f, LatMin = -40f, LatMax = 65f;
     const float Step = 0.5f;
-    const float LandHeight = 3f, SeaDepth = 2f; // land pokes ~half out of the water
+    const float SeaDepth = 2f;      // sea vertices dip this far below the water
+
+    // Coast-to-inland height ramp (sail-fb3): the shore sits just above the
+    // water and the land rises into rugged mountains further from any sea.
+    const float CoastHeight = 0.4f; // height of the first land cell touching sea
+    const float MaxMountain = 6f;   // base height deep inland (before ruggedness)
+    const int   InlandSteps = 12;   // grid steps from coast to reach full height
+    const float RuggedAmp   = 2.5f; // extra Perlin relief, strongest inland
 
     // Straits forced to sea: {lonMin, lonMax, latMin, latMax}
     static readonly float[][] Straits =
@@ -36,10 +44,38 @@ public static class LandBuilder
         int cols = Mathf.RoundToInt((LonMax - LonMin) / Step) + 1;
         int rows = Mathf.RoundToInt((LatMax - LatMin) / Step) + 1;
 
-        var verts = new Vector3[cols * rows];
-        var uvs = new Vector2[cols * rows];
+        int cells = cols * rows;
+        var verts = new Vector3[cells];
+        var uvs = new Vector2[cells];
         var tris = new int[(cols - 1) * (rows - 1) * 6];
 
+        // 1) Classify every grid cell as sea or land.
+        var sea = new bool[cells];
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+                sea[r * cols + c] = IsSea(tex, LatMin + r * Step, LonMin + c * Step);
+
+        // 2) Multi-source BFS from the sea -> each land cell's distance (in grid
+        //    steps) to the nearest coast.
+        var dist = new int[cells];
+        for (int i = 0; i < cells; i++) dist[i] = int.MaxValue;
+        var q = new Queue<int>();
+        for (int i = 0; i < cells; i++) if (sea[i]) { dist[i] = 0; q.Enqueue(i); }
+        while (q.Count > 0)
+        {
+            int cur = q.Dequeue();
+            int cr = cur / cols, cc = cur % cols;
+            for (int n = 0; n < 4; n++)
+            {
+                int nr = cr + (n == 0 ? 1 : n == 1 ? -1 : 0);
+                int nc = cc + (n == 2 ? 1 : n == 3 ? -1 : 0);
+                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+                int ni = nr * cols + nc;
+                if (dist[ni] > dist[cur] + 1) { dist[ni] = dist[cur] + 1; q.Enqueue(ni); }
+            }
+        }
+
+        // 3) Place vertices; land height ramps from the coast up into mountains.
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < cols; c++)
@@ -48,7 +84,18 @@ public static class LandBuilder
                 float lat = LatMin + r * Step;
                 int i = r * cols + c;
                 var p = GeoProjection.LatLonToWorld(lat, lon);
-                p.y = IsSea(tex, lat, lon) ? -SeaDepth : LandHeight;
+                if (sea[i])
+                {
+                    p.y = -SeaDepth;
+                }
+                else
+                {
+                    int d = dist[i] == int.MaxValue ? InlandSteps + 1 : dist[i];
+                    float ramp = Mathf.Clamp01((d - 1) / (float)InlandSteps); // 0 at coast .. 1 inland
+                    float baseH = Mathf.Lerp(CoastHeight, MaxMountain, Mathf.SmoothStep(0f, 1f, ramp));
+                    float rugged = Mathf.PerlinNoise(lon * 1.1f + 50f, lat * 1.1f + 50f); // 0..1
+                    p.y = baseH + ramp * rugged * RuggedAmp;
+                }
                 verts[i] = p;
                 uvs[i] = GeoProjection.UV(lat, lon);
             }
