@@ -33,7 +33,7 @@ public static class Phase1SceneBuilder
         rb.centerOfMass = new Vector3(0f, -0.6f, 0f);                          // keel: resists flipping
         boat.AddComponent<BoxCollider>().size = new Vector3(2f, 0.8f, 5f);
 
-        AddShipVisual(boat.transform, hullMat);
+        ShipBuilder.AddShipVisual(boat.transform, hullMat);
 
         var probes = new List<Transform>();
         float px = 0.9f, pz = 2.2f, py = -0.4f;
@@ -110,26 +110,6 @@ public static class Phase1SceneBuilder
         };
         AssetDatabase.SaveAssets();
         Debug.Log("Phase1SceneBuilder: built " + ScenePath);
-    }
-
-    // Simple cube boat visual. (A proper ship model is parked until the glTF
-    // importer is stable in this project.)
-    static void AddShipVisual(Transform boat, Material hullMat)
-    {
-        MakeChildCube(boat, "Hull", Vector3.zero, new Vector3(2f, 0.8f, 5f), hullMat);
-        MakeChildCube(boat, "Bow", new Vector3(0f, 0.5f, 2.4f), new Vector3(0.4f, 0.4f, 0.6f), hullMat);
-    }
-
-    static GameObject MakeChildCube(Transform parent, string name, Vector3 localPos, Vector3 scale, Material mat)
-    {
-        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        go.name = name;
-        Object.DestroyImmediate(go.GetComponent<BoxCollider>());
-        go.transform.SetParent(parent, false);
-        go.transform.localPosition = localPos;
-        go.transform.localScale = scale;
-        go.GetComponent<MeshRenderer>().sharedMaterial = mat;
-        return go;
     }
 
     static Material MakeMaterial(string path, Color color, float smoothness)

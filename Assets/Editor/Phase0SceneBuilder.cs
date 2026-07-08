@@ -37,22 +37,8 @@ public static class Phase0SceneBuilder
         var box = boat.AddComponent<BoxCollider>();
         box.size = new Vector3(2f, 0.8f, 5f);
 
-        // Hull visual
-        var hull = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        hull.name = "Hull";
-        Object.DestroyImmediate(hull.GetComponent<BoxCollider>()); // collider lives on the root
-        hull.transform.SetParent(boat.transform, false);
-        hull.transform.localScale = new Vector3(2f, 0.8f, 5f);
-        hull.GetComponent<MeshRenderer>().sharedMaterial = hullMat;
-
-        // Bow marker so you can see which way is forward
-        var bow = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        bow.name = "Bow";
-        Object.DestroyImmediate(bow.GetComponent<BoxCollider>());
-        bow.transform.SetParent(boat.transform, false);
-        bow.transform.localPosition = new Vector3(0f, 0.5f, 2.4f);
-        bow.transform.localScale = new Vector3(0.4f, 0.4f, 0.6f);
-        bow.GetComponent<MeshRenderer>().sharedMaterial = hullMat;
+        // Ship visual (procedural caravel: hull + masts + sails)
+        ShipBuilder.AddShipVisual(boat.transform, hullMat);
 
         // Float probes at the four hull-bottom corners
         var probes = new List<Transform>();
