@@ -122,14 +122,17 @@ public class DayNightCycle : MonoBehaviour
             // Face the camera so the shadow slides "sideways" on screen.
             moonDisc.rotation = Quaternion.LookRotation((moonDisc.position - camPos).normalized, Vector3.up);
 
-            // Phase from the in-game date: 0 = new .. 0.5 = full .. 1 = new.
-            double totalDays = clock != null ? clock.TotalDays : 7.0;
-            float phase01 = Mathf.Repeat((float)(totalDays / Synodic), 1f);
+            // Phase from the in-game date, offset so day 0 (1480-01-01) is a
+            // full moon -> clearly visible from the first night, then waning to
+            // new and back: 0 = new .. 0.5 = full .. 1 = new.
+            double totalDays = clock != null ? clock.TotalDays : 0.0;
+            float phase01 = Mathf.Repeat((float)(totalDays / Synodic) + 0.5f, 1f);
             float illum = (1f - Mathf.Cos(phase01 * 2f * Mathf.PI)) * 0.5f;   // 0 new .. 1 full
             shadowMat.color = sky;                                            // carve with the sky colour
             float side = phase01 < 0.5f ? 1f : -1f;                           // waxing vs waning
-            // localPosition in parent radii: 0 = covering (new), ~2.1 = clear (full).
-            moonShadow.localPosition = new Vector3(side * illum * 2.1f, 0f, -0.18f);
+            // localPosition in parent radii: 0 = shadow covering (new),
+            // ~1.15 = shadow fully clear of the disc (full).
+            moonShadow.localPosition = new Vector3(side * illum * 1.15f, 0f, -0.18f);
         }
     }
 }

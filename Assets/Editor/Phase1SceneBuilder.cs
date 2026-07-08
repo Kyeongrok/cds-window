@@ -77,7 +77,8 @@ public static class Phase1SceneBuilder
         mapScreen.boat = boat.transform;
         mapScreen.mapTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/worldmap.jpg");
 
-        var clock = world.AddComponent<GameClock>(); // 1480-01-01, 1 day per real minute
+        var clock = world.AddComponent<GameClock>(); // 1480-01-01
+        clock.secondsPerDay = 30f;                    // sail2: 30 real seconds = 24 in-game hours
 
         // --- Land (real geography from the Blue Marble map) ---
         LandBuilder.Build();
